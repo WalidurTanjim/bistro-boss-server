@@ -34,9 +34,14 @@ async function run() {
     const testimonialCollection = db.collection('testimonials');
 
     // menu related apis
-    app.get('/featured-menu', async(req, res) => {
+    app.get('/featured-menu', async(req, res) => {    // get featured-menu limit(6)
         const result = await menuCollection.find().limit(6).toArray();
         res.send(result);
+    })
+
+    app.get('/menu', async(req, res) => {   // get all menu
+      const result = await menuCollection.find().toArray();
+      res.send(result);
     })
 
 
