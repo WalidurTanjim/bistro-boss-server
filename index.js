@@ -64,6 +64,20 @@ async function run() {
       }).send({ success: true });
     })
 
+    
+    // users related apis
+    app.post('/users', async(req, res) => {
+      const user = req.body;
+      const email = user?.email;
+      const query = { email: email };
+      const existUser = await userCollection.findOne(query);
+      if(existUser){
+        return res.status(401).send({ message: "User already added on database" });
+      }
+      const result = await userCollection.insertOne(user);
+      res.send(result);
+    })
+
 
     // menu related apis
     app.get('/featured-menu', async (req, res) => {    // get featured-menu limit(6)
@@ -115,6 +129,15 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await cartCollection.deleteOne(query);
       res.send(result);
+    })
+
+
+    // logout related apis
+    app.post('/logout', async(req, res) => {
+      res.clearCookie('token', {
+        httpOnly: true,
+        secure: false
+      }).send({ success: true })
     })
 
 
