@@ -8,9 +8,28 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // middlewares
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
 app.use(cookieParser());
+
+// verifyToken
+const verifyToken = async(req, res, next) => {
+  const token = req?.cookies?.token;
+  if(!token){
+    return res.status(401).send({ message: 'Unauthorized Access' })
+  }
+  jwt.verify(token, process.env.TOKEN_SECRET, (err, decoded) => {
+    if(err){
+      return res.status(401).send({ message: 'Unauthorized Access' });
+    }
+
+    req.user = decoded;
+    next();
+  })
+}
 
 
 const uri = `mongodb+srv://${process.env.DB_user}:${process.env.DB_pass}@cluster0.a1a1zbo.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -30,9 +49,21 @@ async function run() {
 
     // database & collections
     const db = client.db('BistroBoss');
+    const userCollection = db.collection('users');
     const menuCollection = db.collection('menuItems');
     const testimonialCollection = db.collection('testimonials');
     const cartCollection = db.collection('carts');
+
+    // jwt related apis
+    app.post('/create-token', async(req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.TOKEN_SECRET, { expiresIn: '365d' });
+      res.cookie('token', token, {
+        httpOnly: true,
+        secure: false
+      }).send({ success: true });
+    })
+
 
     // menu related apis
     app.get('/featured-menu', async (req, res) => {    // get featured-menu limit(6)
@@ -64,7 +95,7 @@ async function run() {
       // get all menuId
       const addedMenu = await Promise.all(
         result?.map(async item => {
-          const { _id, menuId, ...rest } = item;
+          const { menuId, ...rest } = item;
           const existMenu = await menuCollection.findOne({ _id: new ObjectId(item?.menuId) });
           return {...existMenu, ...rest};
         })
