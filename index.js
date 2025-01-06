@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -32,14 +32,15 @@ async function run() {
     const db = client.db('BistroBoss');
     const menuCollection = db.collection('menuItems');
     const testimonialCollection = db.collection('testimonials');
+    const cartCollection = db.collection('carts');
 
     // menu related apis
-    app.get('/featured-menu', async(req, res) => {    // get featured-menu limit(6)
-        const result = await menuCollection.find().limit(6).toArray();
-        res.send(result);
+    app.get('/featured-menu', async (req, res) => {    // get featured-menu limit(6)
+      const result = await menuCollection.find().limit(6).toArray();
+      res.send(result);
     })
 
-    app.get('/menu', async(req, res) => {   // get all menu
+    app.get('/menu', async (req, res) => {   // get all menu
       const result = await menuCollection.find().toArray();
       res.send(result);
     })
@@ -47,9 +48,42 @@ async function run() {
 
 
     // testimonial related apis
-    app.get('/testimonials', async(req, res) => {
-        const result = await testimonialCollection.find().toArray();
-        res.send(result);
+    app.get('/testimonials', async (req, res) => {
+      const result = await testimonialCollection.find().toArray();
+      res.send(result);
+    })
+
+
+
+    // cart related apis
+    app.get('/carts', async (req, res) => {
+      const email = req?.query?.email;
+      const query = { userEmail: email };
+      const result = await cartCollection.find(query).toArray();
+
+      // get all menuId
+      const addedMenu = await Promise.all(
+        result?.map(async item => {
+          const { _id, menuId, ...rest } = item;
+          const existMenu = await menuCollection.findOne({ _id: new ObjectId(item?.menuId) });
+          return {...existMenu, ...rest};
+        })
+      )
+
+      res.send(addedMenu);
+    })
+
+    app.post('/carts', async (req, res) => {
+      const menuItem = req?.body;
+      const result = await cartCollection.insertOne(menuItem);
+      res.send(result);
+    })
+
+    app.delete('/carts/:id', async (req, res) => {
+      const id = req?.params?.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await cartCollection.deleteOne(query);
+      res.send(result);
     })
 
 
@@ -64,10 +98,10 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', async(req, res) => {
-    res.send('Bistro Boss server is running');
+app.get('/', async (req, res) => {
+  res.send('Bistro Boss server is running');
 })
 
 app.listen(port, () => {
-    console.log('Bistro Boss server is running...');
+  console.log('Bistro Boss server is running...');
 })
