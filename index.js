@@ -68,11 +68,12 @@ async function run() {
     // users related apis
     app.post('/users', async(req, res) => {
       const user = req.body;
-      const email = user?.email;
-      const query = { email: email };
+      user.role = 'customer';
+      const email = user?.userEmail;
+      const query = { userEmail: email };
       const existUser = await userCollection.findOne(query);
       if(existUser){
-        return res.status(401).send({ message: "User already added on database" });
+        return res.status(200).send({ message: "User already added on database" });
       }
       const result = await userCollection.insertOne(user);
       res.send(result);
