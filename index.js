@@ -66,7 +66,14 @@ async function run() {
 
     
     // users related apis
-    app.get('/users', async(req, res) => {
+    app.get('/users', verifyToken, async(req, res) => {
+      const queryEmail = req?.query?.email;
+      const tokenEmail = req?.user?.email;
+      
+      if(queryEmail !== tokenEmail){
+        return res.status(401).send({ message: "Unauthorized Access" });
+      }
+
       const result = await userCollection.find().toArray();
       res.send(result);
     })
