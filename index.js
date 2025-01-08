@@ -91,6 +91,18 @@ async function run() {
       res.send(result);
     })
 
+    app.patch('/users/make-admin/:id', async(req, res) => {
+      const id = req?.params?.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: {
+          role: 'admin'
+        }
+      };
+      const result = await userCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    })
+
 
     // menu related apis
     app.get('/featured-menu', async (req, res) => {    // get featured-menu limit(6)
