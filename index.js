@@ -71,7 +71,7 @@ async function run() {
       const tokenEmail = req?.user?.email;
       
       if(queryEmail !== tokenEmail){
-        return res.status(401).send({ message: "Unauthorized Access" });
+        return res.status(403).send({ message: "Forbidden Access" });
       }
 
       const result = await userCollection.find().toArray();
@@ -108,6 +108,23 @@ async function run() {
       };
       const result = await userCollection.updateOne(query, updatedDoc);
       res.send(result);
+    })
+
+    app.get('/users/admin/:email', verifyToken, async(req, res) => {
+      const email = req?.params?.email;
+      const tokenEmail = req?.user?.email;
+
+      if(email !== tokenEmail){
+        return res.status(401).send({ message: 'Unauthorized Access' });
+      }
+
+      const query = { userEmail: email };
+      const user = await userCollection.findOne(query);
+      let isAdmin = false;
+      if(user){
+        isAdmin = user?.role === 'admin';
+      };
+      res.send({ isAdmin });
     })
 
 
