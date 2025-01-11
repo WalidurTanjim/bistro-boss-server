@@ -54,6 +54,19 @@ async function run() {
     const testimonialCollection = db.collection('testimonials');
     const cartCollection = db.collection('carts');
 
+    // verifyAdmin
+    const verifyAdmin = async(req, res, next) => {
+      const email = req?.user?.email;
+      console.log(email);
+      const query = { userEmail: email };
+      const user = await userCollection.findOne(query);
+      const isAdmin = user?.role === 'admin';
+      if(!isAdmin){
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    }
+
     // jwt related apis
     app.post('/create-token', async(req, res) => {
       const user = req.body;
@@ -66,13 +79,13 @@ async function run() {
 
     
     // users related apis
-    app.get('/users', verifyToken, async(req, res) => {
-      const queryEmail = req?.query?.email;
-      const tokenEmail = req?.user?.email;
+    app.get('/users', verifyToken, verifyAdmin, async(req, res) => {
+      // const queryEmail = req?.query?.email;
+      // const tokenEmail = req?.user?.email;
       
-      if(queryEmail !== tokenEmail){
-        return res.status(403).send({ message: "Forbidden Access" });
-      }
+      // if(queryEmail !== tokenEmail){
+      //   return res.status(403).send({ message: "Forbidden Access" });
+      // }
 
       const result = await userCollection.find().toArray();
       res.send(result);
@@ -91,14 +104,14 @@ async function run() {
       res.send(result);
     })
 
-    app.delete('/users/:id', async(req, res) => {
+    app.delete('/users/:id', verifyToken, verifyAdmin, async(req, res) => {
       const id = req?.params?.id;
       const query = { _id: new ObjectId(id) };
       const result = await userCollection.deleteOne(query);
       res.send(result);
     })
 
-    app.patch('/users/make-admin/:id', async(req, res) => {
+    app.patch('/users/make-admin/:id', verifyToken, verifyAdmin, async(req, res) => {
       const id = req?.params?.id;
       const query = { _id: new ObjectId(id) };
       const updatedDoc = {
@@ -134,8 +147,40 @@ async function run() {
       res.send(result);
     })
 
-    app.get('/menu', async (req, res) => {   // get all menu
+    app.get('/menu/:id', verifyToken, verifyAdmin, async(req, res) => {
+      const id = req.params?.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await menuCollection.findOne(query);
+      res.send(result);
+    })
+
+    app.get('/menu', verifyToken, verifyAdmin, async (req, res) => {   // get all menu
       const result = await menuCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post('/menu', verifyToken, verifyAdmin, async(req, res) => {
+      const menu = req?.body;
+      const result = await menuCollection.insertOne(menu);
+      res.send(result);
+    })
+
+    app.put('/menu/:id', verifyToken, verifyAdmin, async(req, res) => {
+      const menu = req.body;
+      const id = req?.params?.id;
+      const query = { _id: new ObjectId(id) };
+      const updatedMenu = {
+        $set: menu
+      };
+      const options = { upsert: true };
+      const result = await menuCollection.insertOne(query, updatedMenu, options);
+      res.send(result);
+    })
+
+    app.delete('/menu/:id', verifyToken, verifyAdmin, async(req, res) => {
+      const id = req?.params?.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await menuCollection.deleteOne(query);
       res.send(result);
     })
 
